@@ -1,35 +1,48 @@
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useContext, useEffect } from "react";
+import { football } from "../config/football-api";
+import { api } from "../services/api";
 const FilterContext = createContext();
 
 export default function FilterProvider({ children }) {
   const [season, setSeason] = useState(null);
   const [league, setLeague] = useState(null);
+  const [seasons, setSeasons] = useState([]);
+  const [leagues, setLeagues] = useState([]);
 
-  const seasons = [
-    {
-        label: "2019",
-        value: 2019,
-    },
-    {
-        label: "2020",
-        value: 2020,
-    },
-    {
-        label: "2021",
-        value: 2021,
-    },
-    {
-        label: "2022",
-        value: 2022,
-    },
-  ]
+  useEffect(() => {
+    async function getSeasons(){
+      await api.get('/leagues/seasons', {
+        headers: {
+          'x-rapidapi-host': football.host,
+          'x-rapidapi-key': football.key
+        }
+      })
+      .then(response => setSeasons(response.data.response))
+      .catch(err => console.log(err))
+    }
 
-  const leagues = [
-      {
-          label: "Premier League",
-          value: 39,
-      }
-  ]
+    getSeasons();
+  }, [])
+
+  useEffect(() => {
+    async function getLeagues(){
+      setLeagues([]);
+
+      // Resolvi deixar apenas o Brasil filtrado, pois a requisição tava demorando muito pra trazer todas as ligas que existem
+      await api.get('/leagues?code=BR', {
+        headers: {
+          'x-rapidapi-host': football.host,
+          'x-rapidapi-key': football.key
+        }
+      })
+      .then(response => response.data.response.map(resp => {
+        setLeagues(old => [...old, resp.league])
+      }))
+      .catch(err => console.log(err))
+    }
+
+    getLeagues()
+  }, [])
 
   return (
     <FilterContext.Provider value={{ season, setSeason, league, setLeague, seasons, leagues }}>
